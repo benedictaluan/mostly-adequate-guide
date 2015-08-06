@@ -43,7 +43,7 @@ Let's make a few things clear before we move on:
 
 * Once data goes into the `Container` it stays there. We *could* get it out by using `.__value`, but that would defeat the purpose.
 
-The reasons we're doing this will become clear as a mason jar, but for now, bare with me.
+The reasons we're doing this will become clear as a mason jar, but for now, bear with me.
 
 ## My First Functor
 
@@ -73,7 +73,7 @@ Container.of("bombs").map(concat(' away')).map(_.prop('length'))
 
 We can work with our value without ever having to leave the `Container`. This is a remarkable thing. Our value in the `Container` is handed to the `map` function so we can fuss with it and afterward, returned to its `Container` for safe keeping. As a result of never leaving the `Container`, we can continue to `map` away, running functions as we please. We can even change the type as we go along as demonstrated in the latter of the three examples.
 
-Wait a minute, if we keep calling `map`, it appears to be some sort of composition! What mathematical magic is at work here? Well chaps, we've just discovered *Functors*. 
+Wait a minute, if we keep calling `map`, it appears to be some sort of composition! What mathematical magic is at work here? Well chaps, we've just discovered *Functors*.
 
 > A Functor is a type that implements `map` and obeys some laws
 
@@ -123,7 +123,7 @@ Maybe.of({name: "Dinah", age: 14}).map(_.prop("age")).map(add(10));
 
 Notice our app doesn't explode with errors as we map functions over our null values. This is because `Maybe` will take care to check for a value each and every time it applies a function.
 
-This dot syntax is perfectly fine and functional, but for reasons mentioned in Part 1, we'd like to maintain our pointfree style. As it happens, `map` is fully equip to delegate to whatever functor it receives:
+This dot syntax is perfectly fine and functional, but for reasons mentioned in Part 1, we'd like to maintain our pointfree style. As it happens, `map` is fully equipped to delegate to whatever functor it receives:
 
 ```js
 //  map :: Functor f => (a -> b) -> f a -> f b
@@ -161,11 +161,14 @@ Sometimes a function might return a `Maybe(null)` explicitly to signal failure. 
 ```js
 //  withdraw :: Number -> Account -> Maybe(Account)
 var withdraw = curry(function(amount, account) {
-  return account.balance >= amount ? Maybe.of({balance: account.balance - amount}) : Maybe.of(null); 
+  return account.balance >= amount ?
+    Maybe.of({balance: account.balance - amount})
+    :
+    Maybe.of(null);
 });
 
 //  finishTransaction :: Account -> String
-var finishTransaction = compose(remainingBalance, updateLedger); //<-- omitted for simplicity
+var finishTransaction = compose(remainingBalance, updateLedger);
 
 //  getTwenty :: Account -> Maybe(String)
 var getTwenty = compose(map(finishTransaction), withdraw(20));
@@ -196,7 +199,9 @@ var maybe = curry(function(x, f, m) {
 });
 
 //  getTwenty :: Account -> String
-var getTwenty = compose(maybe("You're broke!", finishTransaction), withdraw(20));
+var getTwenty = compose(
+  maybe("You're broke!", finishTransaction), withdraw(20)
+);
 
 
 getTwenty({ balance: 200.00});
@@ -213,7 +218,7 @@ The introduction of `Maybe` can cause some initial discomfort. Users of Swift an
 Writing unsafe software is like taking care to paint each egg with pastels before hurling it into traffic; like building a retirement home with materials warned against by three little pigs. It will do us well to put some safety into our functions and `Maybe` helps us do just that.
 
 
-## Pure Error Handling 
+## Pure Error Handling
 
 <img src="images/fists.jpg" alt="pick a hand... need a reference" />
 
@@ -526,33 +531,35 @@ Take a moment to consider how linear the control flow is here. We just read bott
 
 Goodness, would you look at that, `Task` has also swallowed up `Either`! It must do so in order to handle futuristic failures since our normal control flow does not apply in the async world. This is all well and good as it provides sufficient and pure error handling out of the box.
 
-Even with `Task`, our `IO` and `Either` functors are not out of a job. Bear with me on a quick example that leans toward the more complex and hypothetical side, but is useful for illustrative purposes.
+Even with `Task`, our `IO` and `Either` functors are not out of a job. Bare with me on a quick example that leans toward the more complex and hypothetical side, but is useful for illustrative purposes.
 
 ```js
-// Postgres.connect :: Url -> DbConnection
+// Postgres.connect :: Url -> IO DbConnection
 // runQuery :: DbConnection -> ResultSet
-
+// readFile :: String -> Task Error String
 
 // Pure application
 //=====================
 
-//  dbUrl :: Config -> Either(Error, Url)
+//  dbUrl :: Config -> Either Error Url
 var dbUrl = function(c) {
   return (c.uname && c.pass && c.host && c.db)
     ? Right.of("db:pg://"+c.uname+":"+c.pass+"@"+c.host+"5432/"+c.db)
     : Left.of(Error("Invalid config!"));
 }
 
-//  connectDb :: Config -> Either(Error, IO(DbConnection))
+//  connectDb :: Config -> Either Error (IO DbConnection)
 var connectDb = compose(map(Postgres.connect), dbUrl);
 
-//  getConfig :: Filename -> Task(Error, Either(Error, IO(DbConnection)))
+//  getConfig :: Filename -> Task Error (Either Error (IO DbConnection))
 var getConfig = compose(map(compose(connectDB, JSON.parse)), readFile);
 
 
 // Impure calling code
 //=====================
-getConfig("db.json").fork(logErr("couldn't read file"), either(console.log, map(runQuery)));
+getConfig("db.json").fork(
+  logErr("couldn't read file"), either(console.log, map(runQuery))
+);
 ```
 
 In this example, we still make use of `Either` and `IO` from within the success branch of `readFile`. `Task` takes care of the impurities of reading a file asynchronously, but we still deal with validating the config with `Either` and wrangling the db connection with `IO`. So you see, we're still in business for all things synchronous.
@@ -612,7 +619,7 @@ We can also visualize the mapping of a morphism and its corresponding objects wi
 
 <img src="images/functormap.png" alt="functor diagram" />
 
-In addition to visualizing the mapped morphism from one category to another under the functor `F`, we see that the diagram commutes, which is to say, if you follow the arrows each route produces the same result. The different routes means different behavior, but we always end at the same type. This formalism gives us principled ways to reason about our code - we can boldly apply formulas without having to parse and examine each individual scenario. Let's take a concrete example. 
+In addition to visualizing the mapped morphism from one category to another under the functor `F`, we see that the diagram commutes, which is to say, if you follow the arrows each route produces the same result. The different routes means different behavior, but we always end at the same type. This formalism gives us principled ways to reason about our code - we can boldly apply formulas without having to parse and examine each individual scenario. Let's take a concrete example.
 
 ```js
 //  topRoute :: String -> Maybe(String)
@@ -650,7 +657,7 @@ What we have here with `nested` is a future array of elements that might be erro
 var Compose = function(f_g_x){
   this.getCompose = f_g_x;
 }
- 
+
 Compose.prototype.map = function(f){
   return new Compose(map(map(f), this.getCompose));
 }
@@ -686,7 +693,8 @@ var _ = require('ramda');
 
 // Exercise 1
 // ==========
-// Use _.add(x,y) and _.map(f,x) to make a function that increments a value inside a functor
+// Use _.add(x,y) and _.map(f,x) to make a function that increments a value
+// inside a functor
 
 var ex1 = undefined
 
@@ -742,7 +750,8 @@ var ex5 = undefined
 
 // Exercise 6
 // ==========
-// Write a function that uses checkActive() and showWelcome() to grant access or return the error
+// Write a function that uses checkActive() and showWelcome() to grant access
+// or return the error
 
 var showWelcome = _.compose(_.add( "Welcome "), _.prop('name'))
 
@@ -756,7 +765,8 @@ var ex6 = undefined
 
 // Exercise 7
 // ==========
-// Write a validation function that checks for a length > 3. It should return Right(x) if it is greater than 3 and Left("You need > 3") otherwise
+// Write a validation function that checks for a length > 3. It should return
+// Right(x) if it is greater than 3 and Left("You need > 3") otherwise
 
 var ex7 = function(x) {
   return undefined // <--- write me. (don't be pointfree)
@@ -766,7 +776,9 @@ var ex7 = function(x) {
 
 // Exercise 8
 // ==========
-// Use ex7 above and Either as a functor to save the user if they are valid or return the error message string. Remember either's two arguments must return the same type.
+// Use ex7 above and Either as a functor to save the user if they are valid or
+// return the error message string. Remember either's two arguments must return
+// the same type.
 
 var save = function(x){
   return new IO(function(){
